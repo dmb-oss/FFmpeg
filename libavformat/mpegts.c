@@ -1721,6 +1721,7 @@ static void m4sl_cb(MpegTSFilter *filter, const uint8_t *section,
     if (skip_identical(&h, tssf))
         return;
 
+    p += 3;
     mp4_read_od(s, p, (unsigned) (p_end - p), mp4_descr, &mp4_descr_count,
                 MAX_MP4_DESCR_COUNT);
 
@@ -2300,6 +2301,9 @@ static int parse_stream_identifier_desc(const uint8_t *p, const uint8_t *p_end)
         if (desc_end > desc_list_end)
             return -1;
 
+        if (desc_tag == 0x1e && desc_len == 0x02) {
+            return get16(pp, desc_end);
+        }
         if (desc_tag == 0x52) {
             return get8(pp, desc_end);
         }
@@ -2892,6 +2896,11 @@ static int handle_packet(MpegTSContext *ts, const uint8_t *packet, int64_t pos)
                                                 pos - ts->raw_packet_size)) < 0)
                 return ret;
         }
+        // else if (tss->type == MPEGTS_SECTION) {
+        //     if ((ret = tss->u.section_filter.section_cb(tss, p, p_end - p, is_start,
+        //                                         pos - ts->raw_packet_size)) < 0)
+        //         return ret;
+        // }
     }
 
     return 0;

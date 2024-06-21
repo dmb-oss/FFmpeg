@@ -469,7 +469,7 @@ static int of_streamcopy(OutputFile *of, OutputStream *ost, AVPacket *pkt)
         dts >= of->recording_time + start_time)
         return AVERROR_EOF;
 
-    if (!ms->streamcopy_started && !(pkt->flags & AV_PKT_FLAG_KEY) &&
+    if (0 && !ms->streamcopy_started && !(pkt->flags & AV_PKT_FLAG_KEY) &&
         !ms->copy_initial_nonkeyframes)
         return AVERROR(EAGAIN);
 
