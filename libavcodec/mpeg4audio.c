@@ -143,9 +143,15 @@ int ff_mpeg4audio_get_config_gb(MPEG4AudioConfig *c, GetBitContext *gb,
                     c->ext_sample_rate = get_sample_rate(gb, &c->ext_sampling_index);
                     if (c->ext_sample_rate == c->sample_rate)
                         c->sbr = -1;
+                    if (get_bits_left(gb) > 11 && get_bits(gb, 11) == 0x548)
+                        c->ps = get_bits1(gb);
                 }
-                if (get_bits_left(gb) > 11 && get_bits(gb, 11) == 0x548)
-                    c->ps = get_bits1(gb);
+                if (c->ext_object_type == AOT_ER_BSAC && (c->sbr = get_bits1(gb)) == 1) {
+                    c->ext_sample_rate = get_sample_rate(gb, &c->ext_sampling_index);
+                    if (c->ext_sample_rate == c->sample_rate)
+                        c->sbr = -1;
+                    c->ext_chan_config = get_bits(gb, 4);
+                }
                 break;
             } else
                 get_bits1(gb); // skip 1 bit

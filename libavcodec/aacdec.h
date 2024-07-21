@@ -133,6 +133,7 @@ typedef struct SingleChannelElement {
     TemporalNoiseShaping tns;
     enum BandType band_type[128];                   ///< band types
     int band_type_run_end[120];                     ///< band type run end points
+    int sf_idx[128];                                ///< scalefactor indices
     INTFLOAT sf[120];                               ///< scalefactors
     DECLARE_ALIGNED(32, INTFLOAT, coeffs)[1024];    ///< coefficients for IMDCT, maybe processed
     DECLARE_ALIGNED(32, INTFLOAT, saved)[1536];     ///< overlap
@@ -148,6 +149,7 @@ typedef struct SingleChannelElement {
 typedef struct ChannelElement {
     int present;
     // CPE specific
+    int     ms_mode;          ///< Signals mid/side stereo flags coding mode
     uint8_t ms_mask[128];     ///< Set if mid/side stereo is used for each scalefactor window band
     // shared
     SingleChannelElement ch[2];
@@ -180,6 +182,70 @@ typedef struct DynamicRangeControl {
                                                      */
 } DynamicRangeControl;
 
+typedef struct {
+    int present;
+    int start_sfb;
+    int sfb_flag[2][136];
+    int sfb_mode[136];
+    int pcm_flag[2];
+    int max_energy[2];
+} PerceptualNoise;
+
+
+/**
+ * arDec parameter
+ */
+typedef struct {
+    uint64_t value;
+    uint64_t range;
+    int cw_len;
+} ArDecoder;
+
+/**
+ * bsac parameter
+ */
+typedef struct {
+    TemporalNoiseShaping *tns[2];
+    LongTermPrediction   *ltp[2];
+    PerceptualNoise      *pns;
+    ChannelElement *che;
+    int long_sfb_top;
+    int short_sfb_top;
+    int sba_mode;
+    int cband_si_type[2];
+    int nch;
+    int numOfSubFrame;
+    int layer_length;
+    int frameLength;
+    int header_length;
+    int top_layer;
+    int base_snf_thr;
+    int base_band;
+    int top_band;
+    int max_scalefactor[2];
+    int base_scf_model[2];
+    int enh_scf_model[2];
+    int max_sfb_si_len[2];
+    int scf_model0[2];
+    int scf_model1[2];
+    // MS specific
+    int     ms_present;
+    uint8_t ms_mask[128];
+    uint8_t is_mask[128];
+    // IS specific
+    uint8_t is_intensity;
+    // slayer
+    int slayer_size;
+    int end_index[8];
+    int end_cband[8];
+    // arDecoder
+    ArDecoder arDec[64];
+    uint64_t value;
+    uint64_t range;
+    int cw_len;
+    uint64_t *half;
+} BSAC;
+
 /**
  * main AAC decoding context
  */
@@ -208,6 +274,13 @@ typedef struct AACDecContext {
      */
     DECLARE_ALIGNED(32, INTFLOAT, buf_mdct)[1024];
     DECLARE_ALIGNED(32, INTFLOAT, temp)[128];
+    /** @} */
+
+    /**
+     * @name BSAC related data
+     * @{
+     */
+    BSAC *bsac;
     /** @} */
 
     /**

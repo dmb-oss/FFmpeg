@@ -179,6 +179,7 @@ OBJS-$(CONFIG_A64MULTI_ENCODER)        += a64multienc.o elbg.o
 OBJS-$(CONFIG_A64MULTI5_ENCODER)       += a64multienc.o elbg.o
 OBJS-$(CONFIG_AAC_DECODER)             += aacdec.o aacdec_common.o aactab.o \
                                           aacsbr.o aacps_common.o aacps_float.o \
+                                          bsactab.o \
                                           kbdwin.o \
                                           sbrdsp.o aacpsdsp_float.o cbrt_data.o
 OBJS-$(CONFIG_AAC_FIXED_DECODER)       += aacdec_fixed.o aacdec_common.o aactab.o \
