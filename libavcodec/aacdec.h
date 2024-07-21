@@ -151,6 +151,7 @@ typedef struct ChannelElement {
     // CPE specific
     int     ms_mode;          ///< Signals mid/side stereo flags coding mode
     uint8_t ms_mask[128];     ///< Set if mid/side stereo is used for each scalefactor window band
+    uint8_t is_mask[128];     ///< Set if intensity stereo is used
     // shared
     SingleChannelElement ch[2];
     // CCE specific
@@ -205,9 +206,7 @@ typedef struct {
  * bsac parameter
  */
 typedef struct {
-    TemporalNoiseShaping *tns[2];
-    LongTermPrediction   *ltp[2];
-    PerceptualNoise      *pns;
+    PerceptualNoise *pns;
     ChannelElement *che;
     int long_sfb_top;
     int short_sfb_top;
@@ -228,12 +227,6 @@ typedef struct {
     int max_sfb_si_len[2];
     int scf_model0[2];
     int scf_model1[2];
-    // MS specific
-    int     ms_present;
-    uint8_t ms_mask[128];
-    uint8_t is_mask[128];
-    // IS specific
-    uint8_t is_intensity;
     // slayer
     int slayer_size;
     int end_index[8];

@@ -1189,10 +1189,6 @@ static void bsac_decode_init(AACDecContext *ac, int sampling_rate_decoded, int b
 
     bsac = ac->bsac = av_mallocz(sizeof(BSAC));
     bsac->che = av_mallocz(sizeof(ChannelElement));
-    bsac->tns[0] = av_mallocz(sizeof(TemporalNoiseShaping));
-    bsac->ltp[0] = av_mallocz(sizeof(LongTermPrediction));
-    bsac->tns[1] = av_mallocz(sizeof(TemporalNoiseShaping));
-    bsac->ltp[1] = av_mallocz(sizeof(LongTermPrediction));
     bsac->pns = av_mallocz(sizeof(PerceptualNoise));
 
     bsac->half = half;
@@ -3407,10 +3403,10 @@ static int decode_bsac_scfband_si(BSAC *bsac,
                         bsac->che->ms_mask[g * maxSfb + sfb + 1] = 1;
                         break;
                     case 2:
-                        bsac->is_mask[g * maxSfb + sfb] = 1;
+                        bsac->che->is_mask[g * maxSfb + sfb] = 1;
                         break;
                     case 3:
-                        bsac->is_mask[g * maxSfb + sfb] = 2;
+                        bsac->che->is_mask[g * maxSfb + sfb] = 2;
                         break;
                     }
                     if(bsac->pns->present && sfb >= bsac->pns->start_sfb) {
@@ -3418,7 +3414,7 @@ static int decode_bsac_scfband_si(BSAC *bsac,
                         bsac->pns->sfb_flag[0][g * maxSfb + sfb] = m;
                         si_cw_len += bsac_decode_symbol(bsac, AModelNoiseFlag, &m, gb);
                         bsac->pns->sfb_flag[1][g * maxSfb + sfb] = m;
-                        if(ms_mode == 3 && bsac->is_mask[g * maxSfb + sfb] == 2) {
+                        if(ms_mode == 3 && bsac->che->is_mask[g * maxSfb + sfb] == 2) {
                             if(bsac->pns->sfb_flag[0][g * maxSfb + sfb] && bsac->pns->sfb_flag[1][g * maxSfb + sfb]) {
                                 si_cw_len += bsac_decode_symbol(bsac, AModelNoiseMode, &m, gb);
                                 bsac->pns->sfb_mode[g * maxSfb + sfb] = m;
@@ -3436,7 +3432,7 @@ static int decode_bsac_scfband_si(BSAC *bsac,
                 }
                 si_cw_len += bsac_decode_symbol(bsac, AModelScf[scf_model[ch]], &m, gb);
                 bsac->che->ch[ch].sf_idx[g * maxSfb + sfb] = bsac->pns->max_energy[ch] - m;
-            } else if ( bsac->is_mask[g * maxSfb + sfb] && ch == 1) {
+            } else if ( bsac->che->is_mask[g * maxSfb + sfb] && ch == 1) {
                 if (scf_model[ch]==0) {
                     bsac->che->ch[ch].sf_idx[g * maxSfb + sfb] = 0;
                 } else {
@@ -3940,7 +3936,7 @@ static void bsac_dequantization(AACDecContext *ac,
 
     if(bsac->che->ch[ch].ics.window_sequence[0] != EIGHT_SHORT_SEQUENCE) {
         for(sfb = 0; sfb < maxSfb; sfb++) {
-            if(ch == 1 && bsac->is_mask[sfb])
+            if(ch == 1 && bsac->che->is_mask[sfb])
                 continue;
             scale = bsac_calc_scale(scalefactors[sfb] - 100);
             for(i = swb_offset_long[sfb]; i < swb_offset_long[sfb + 1]; i++) {
@@ -3953,7 +3949,7 @@ static void bsac_dequantization(AACDecContext *ac,
         s = 0;
         for(w = 0; w < bsac->che->ch[ch].ics.num_window_groups; w++) {
             for(sfb = 0; sfb < maxSfb; sfb++) {
-                if(ch == 1 && bsac->is_mask[(w * maxSfb) + sfb])
+                if(ch == 1 && bsac->che->is_mask[(w * maxSfb) + sfb])
                     continue;
                 scale = bsac_calc_scale(scalefactors[w * maxSfb + sfb] - 100) * 8;
                 for (b = 0; b < bsac->che->ch[ch].ics.group_len[w]; b++) {
@@ -4751,14 +4747,13 @@ static int bsac_decode_frame(AACDecContext *ac, BSAC *bsac, int target_br,
 
     for (i = 0; i < MAX_SCFAC_BANDS; i++) {
         bsac->che->ms_mask[i] = 0;
-        bsac->is_mask[i] = 0;
+        bsac->che->is_mask[i] = 0;
         bsac->pns->sfb_flag[0][i] = 0;
         bsac->pns->sfb_flag[1][i] = 0;
         bsac->pns->sfb_mode[i] = 0;
     }
 
     bsac->che->ms_mode = 0;
-    bsac->is_intensity = 0;
 
     bsac->frameLength = get_bits(gb, 11) * 8;
 
@@ -4828,7 +4823,7 @@ static int bsac_decode_frame(AACDecContext *ac, BSAC *bsac, int target_br,
                 bsac->che->ms_mask[i + 1] = 1;
         } else if (bsac->che->ms_mode == 3) {
             bsac->che->ms_mask[0] = 1;
-            bsac->is_intensity = 1;
+            // bsac->is_intensity = 1;
         }
     }
 
@@ -4882,7 +4877,7 @@ static int bsac_decode_frame(AACDecContext *ac, BSAC *bsac, int target_br,
         bsac_pns(bsac);
     }
 
-    if (nch == 2 && bsac->is_intensity) {
+    if (nch == 2 && bsac->che->ms_mode == 3) {
         apply_intensity_stereo(ac, bsac->che, bsac->che->ms_mode);
     }
 
