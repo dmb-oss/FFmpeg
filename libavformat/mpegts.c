@@ -93,6 +93,7 @@ typedef struct MpegTSSectionFilter {
     uint8_t *section_buf;
     unsigned int check_crc : 1;
     unsigned int end_of_section_reached : 1;
+    SLConfigDescr sl;
     SectionCallback *section_cb;
     void *opaque;
 } MpegTSSectionFilter;
@@ -1117,12 +1118,12 @@ static int read_sl_header(PESContext *pes, SLConfigDescr *sl,
             skip_bits_long(&gb, sl->inst_bitrate_len);
     }
 
-    if (dts != AV_NOPTS_VALUE)
+    if (pes && dts != AV_NOPTS_VALUE)
         pes->dts = dts;
-    if (cts != AV_NOPTS_VALUE)
+    if (pes && cts != AV_NOPTS_VALUE)
         pes->pts = cts;
 
-    if (sl->timestamp_len && sl->timestamp_res)
+    if (pes && sl->timestamp_len && sl->timestamp_res)
         avpriv_set_pts_info(pes->st, sl->timestamp_len, 1, sl->timestamp_res);
 
     return (get_bits_count(&gb) + 7) >> 3;
@@ -1689,10 +1690,17 @@ static int mp4_read_od(AVFormatContext *s, const uint8_t *buf, unsigned size,
 {
     MP4DescrParseContext d;
     int ret;
+    int tag;
 
     ret = init_MP4DescrParseContext(&d, s, buf, size, descr, max_descr_count);
     if (ret < 0)
         return ret;
+
+    ff_mp4_read_descr(d.s, &d.pb.pub, &tag);
+    if (tag != 0x01) { // ObjectDescriptorUpdate
+        av_log(s, AV_LOG_ERROR, "Unsupported OD command: %d\n", tag);
+        return AVERROR_PATCHWELCOME;
+    }
 
     ret = parse_mp4_descr_arr(&d, avio_tell(&d.pb.pub), size);
 
@@ -1721,7 +1729,8 @@ static void m4sl_cb(MpegTSFilter *filter, const uint8_t *section,
     if (skip_identical(&h, tssf))
         return;
 
-    p += 3;
+    p += read_sl_header(NULL, &tssf->sl, p, p_end - p);
+
     mp4_read_od(s, p, (unsigned) (p_end - p), mp4_descr, &mp4_descr_count,
                 MAX_MP4_DESCR_COUNT);
 
@@ -1865,7 +1874,8 @@ int ff_parse_mpeg2_descriptor(AVFormatContext *fc, AVStream *st, int stream_type
                     sti->need_context_update = 1;
                 }
                 if (st->codecpar->codec_id == AV_CODEC_ID_MPEG4SYSTEMS)
-                    mpegts_open_section_filter(ts, pid, m4sl_cb, ts, 1);
+                    if (mpegts_open_section_filter(ts, pid, m4sl_cb, ts, 1))
+                        ts->pids[pid]->u.section_filter.sl = mp4_descr[i].sl;
             }
         break;
     case FMC_DESCRIPTOR:
@@ -2896,11 +2906,6 @@ static int handle_packet(MpegTSContext *ts, const uint8_t *packet, int64_t pos)
                                                 pos - ts->raw_packet_size)) < 0)
                 return ret;
         }
-        // else if (tss->type == MPEGTS_SECTION) {
-        //     if ((ret = tss->u.section_filter.section_cb(tss, p, p_end - p, is_start,
-        //                                         pos - ts->raw_packet_size)) < 0)
-        //         return ret;
-        // }
     }
 
     return 0;
