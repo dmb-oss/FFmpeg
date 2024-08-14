@@ -142,8 +142,8 @@ static int set_codec_from_probe_data(AVFormatContext *s, AVStream *st,
                 if (sti->request_probe > score &&
                     st->codecpar->codec_id != fmt_id_type[i].id)
                     continue;
-                // st->codecpar->codec_id   = fmt_id_type[i].id;
-                // st->codecpar->codec_type = fmt_id_type[i].type;
+                st->codecpar->codec_id   = fmt_id_type[i].id;
+                st->codecpar->codec_type = fmt_id_type[i].type;
                 sti->need_context_update = 1;
                 return score;
             }

@@ -1759,6 +1759,8 @@ static void m4sl_cb(MpegTSFilter *filter, const uint8_t *section,
             ffio_init_read_context(&pb, mp4_descr[i].dec_config_descr,
                                    mp4_descr[i].dec_config_descr_len);
             ff_mp4_read_dec_config_descr(s, st, &pb.pub);
+            if (st->codecpar->codec_id != AV_CODEC_ID_NONE)
+                sti->request_probe = 0;
             if (st->codecpar->codec_id == AV_CODEC_ID_AAC &&
                 st->codecpar->extradata_size > 0)
                 sti->need_parsing = 0;
