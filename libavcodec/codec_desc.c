@@ -3696,6 +3696,12 @@ static const AVCodecDescriptor codec_descriptors[] = {
         .mime_types= MT("application/MP2T"),
     },
     {
+        .id        = AV_CODEC_ID_MPEG4SYSTEMS,
+        .type      = AVMEDIA_TYPE_DATA,
+        .name      = "mpeg_systems",
+        .long_name = NULL_IF_CONFIG_SMALL("MPEG-4 Systems stream"),
+    },
+    {
         .id        = AV_CODEC_ID_WRAPPED_AVFRAME,
         .type      = AVMEDIA_TYPE_VIDEO,
         .name      = "wrapped_avframe",
