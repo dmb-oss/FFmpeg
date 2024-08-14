@@ -4276,7 +4276,7 @@ static int decode_bsac_stream(AACDecContext *ac, BSAC *bsac, int target,
             break;
     }
 
-    avail_bit_len = gb->size_in_bits / 8 * 8;
+    avail_bit_len = bsac->frameLength;
     for (layer = target + slayer_size - 1; layer >= 0; layer--) {
         if (layer_buf_offset[layer] > avail_bit_len)
             target--;
@@ -4893,17 +4893,6 @@ static int bsac_decode_frame(AACDecContext *ac, BSAC *bsac, int target_br,
 
 
     usedBits = get_bits_count(gb);
-
-    bsac->frameLength = gb->size_in_bits / 8 * 8;
-
-    while (usedBits < bsac->frameLength) {
-        int remain, read_bits;
-
-        remain = bsac->frameLength - usedBits;
-        read_bits = remain > 8 ? 8 : remain;
-        i = get_bits(gb, read_bits);
-        usedBits = get_bits_count(gb);
-    }
 
     return usedBits;
 }
